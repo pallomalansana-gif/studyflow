@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="StudyFlow">
+<meta name="theme-color" content="#ffffff">
+<title>StudyFlow</title>
+<style>
+  :root {
+    --verde: #1D9E75;
+    --verde-light: #E1F5EE;
+    --verde-dark: #085041;
+    --purple-light: #EEEDFE;
+    --purple-mid: #CECBF6;
+    --purple-dark: #3C3489;
+    --amber-light: #FAEEDA;
+    --amber-mid: #FAC775;
+    --amber-dark: #633806;
+    --coral-light: #FAECE7;
+    --coral-mid: #F5C4B3;
+    --coral-dark: #712B13;
+    --red-light: #FCEBEB;
+    --red-dark: #A32D2D;
+    --bg: #ffffff;
+    --bg2: #f5f5f0;
+    --bg3: #eeede8;
+    --text: #1a1a18;
+    --text2: #6b6b66;
+    --text3: #9c9a92;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e;
+      --bg2: #2c2c2e;
+      --bg3: #3a3a3c;
+      --text: #f2f2f7;
+      --text2: #aeaeb2;
+      --text3: #636366;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.18);
+      --verde-light: #0a3d2e;
+      --purple-light: #1e1c4a;
+      --amber-light: #3d2e0a;
+      --coral-light: #3d1a0a;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; background: var(--bg2); color: var(--text); overflow: hidden; height: 100dvh; }
+  .app { max-width: 430px; margin: 0 auto; background: var(--bg); height: 100dvh; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+  .screen { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+  .screen.active { display: flex; }
+
+  /* Topbar */
+  .topbar { padding: 56px 20px 14px; border-bottom: 0.5px solid var(--border); background: var(--bg); }
+  .topbar-row { display: flex; justify-content: space-between; align-items: flex-end; }
+  .greeting { font-size: 13px; color: var(--text2); margin-bottom: 2px; }
+  .app-title { font-size: 26px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+  .streak-pill { background: var(--verde-light); color: var(--verde-dark); font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 20px; }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; padding: 14px 16px; }
+  .stat { background: var(--bg2); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .stat-val { font-size: 22px; font-weight: 700; color: var(--text); }
+  .stat-label { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* Section title */
+  .sec { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; padding: 0 16px; margin-bottom: 8px; }
+
+  /* Modules grid */
+  .modules { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px 14px; }
+  .mod { border-radius: 16px; padding: 14px; cursor: pointer; min-height: 108px; display: flex; flex-direction: column; justify-content: space-between; transition: transform .1s; border: 0.5px solid transparent; }
+  .mod:active { transform: scale(.96); }
+  .mod-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+  .mod-name { font-size: 14px; font-weight: 600; }
+  .mod-desc { font-size: 11px; margin-top: 2px; opacity: .8; }
+  .mod-badge { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; display: inline-block; margin-top: 8px; }
+
+  /* Today */
+  .today-list { padding: 0 16px; flex: 1; overflow-y: auto; }
+  .today-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+  .today-item:last-child { border-bottom: none; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .today-text { font-size: 14px; color: var(--text); flex: 1; }
+  .today-time { font-size: 12px; color: var(--text2); }
+
+  /* Navbar */
+  .navbar { border-top: 0.5px solid var(--border); display: flex; background: var(--bg); padding: 8px 0; padding-bottom: calc(8px + var(--safe-bottom)); }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 0; }
+  .nav-item svg { width: 22px; height: 22px; stroke: var(--text3); fill: none; stroke-width: 1.5; }
+  .nav-item.active svg { stroke: var(--verde); }
+  .nav-label { font-size: 10px; color: var(--text3); }
+  .nav-item.active .nav-label { color: var(--verde); font-weight: 600; }
+
+  /* Screen header */
+  .s-header { display: flex; align-items: center; gap: 12px; padding: 56px 16px 14px; border-bottom: 0.5px solid var(--border); background: var(--bg); }
+  .back { font-size: 16px; color: var(--verde); cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+  .s-title { font-size: 17px; font-weight: 600; color: var(--text); }
+  .s-body { flex: 1; overflow-y: auto; padding: 16px; -webkit-overflow-scrolling: touch; }
+
+  /* Cards */
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; }
+  .card-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .card-sub { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; margin-top: 6px; }
+
+  /* Buttons */
+  .btn { width: 100%; padding: 14px; border-radius: var(--radius-sm); background: var(--verde); color: #fff; border: none; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px; font-family: inherit; transition: filter .15s; }
+  .btn:active { filter: brightness(.88); }
+  .btn-sec { background: var(--bg2); color: var(--text); border: 0.5px solid var(--border2); }
+  .btn-sm { padding: 10px; font-size: 14px; border-radius: var(--radius-sm); border: none; font-weight: 600; cursor: pointer; font-family: inherit; }
+
+  /* Input */
+  input, select, textarea { width: 100%; padding: 12px 14px; border-radius: var(--radius-sm); border: 0.5px solid var(--border2); background: var(--bg2); font-size: 15px; color: var(--text); font-family: inherit; margin-bottom: 10px; -webkit-appearance: none; outline: none; }
+  input:focus, select:focus, textarea:focus { border-color: var(--verde); }
+  textarea { resize: none; line-height: 1.6; }
+
+  /* Flashcard */
+  .flash-wrap { background: var(--bg2); border-radius: 16px; padding: 28px 20px; text-align: center; margin-bottom: 12px; min-height: 160px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-direction: column; gap: 10px; border: 0.5px solid var(--border); }
+  .flash-q { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.5; }
+  .flash-a { font-size: 14px; color: var(--text2); line-height: 1.6; display: none; }
+  .pbar { height: 4px; background: var(--bg2); border-radius: 2px; overflow: hidden; margin: 8px 0 14px; }
+  .pfill { height: 100%; border-radius: 2px; background: var(--verde); transition: width .4s; }
+  .fc-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+  /* Tabs */
+  .tab-row { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .tab-row::-webkit-scrollbar { display: none; }
+  .tab { padding: 7px 16px; font-size: 13px; border: 0.5px solid var(--border2); border-radius: 20px; cursor: pointer; background: transparent; color: var(--text2); white-space: nowrap; font-family: inherit; font-weight: 500; }
+  .tab.on { background: var(--verde); color: #fff; border-color: var(--verde); }
+
+  /* Agenda */
+  .dias { display: flex; gap: 6px; margin-bottom: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; }
+  .dias::-webkit-scrollbar { display: none; }
+  .dia { min-width: 44px; height: 56px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; border: 0.5px solid var(--border); color: var(--text2); gap: 2px; flex-shrink: 0; }
+  .dia.hoje { background: var(--verde); color: #fff; border-color: var(--verde); }
+  .dia.tem { border-color: var(--verde); color: var(--text); }
+  .dia .dia-num { font-size: 16px; font-weight: 700; }
+  .agenda-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 0.5px solid var(--border); align-items: flex-start; }
+  .agenda-item:last-child { border-bottom: none; }
+  .agenda-hora { font-size: 12px; color: var(--text2); min-width: 40px; padding-top: 2px; }
+  .agenda-titulo { font-size: 14px; font-weight: 600; color: var(--text); }
+  .agenda-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .rem-btn { color: var(--text3); font-size: 20px; cursor: pointer; padding-left: 8px; line-height: 1; }
+
+  /* Pastas */
+  .pasta-item { display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--bg2); border-radius: var(--radius); margin-bottom: 8px; cursor: pointer; }
+  .pasta-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pasta-nome { font-size: 14px; font-weight: 600; color: var(--text); }
+  .pasta-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+  /* Gerador */
+  .ia-badge { background: var(--purple-light); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 14px; }
+  .ia-badge-title { font-size: 14px; font-weight: 600; color: var(--purple-dark); margin-bottom: 4px; }
+  .ia-badge-sub { font-size: 13px; color: var(--purple-dark); line-height: 1.5; opacity: .85; }
+  .spinner { width: 24px; height: 24px; border: 2.5px solid var(--border2); border-top-color: var(--verde); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .fc-item { background: var(--bg2); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 8px; cursor: pointer; }
+  .fc-item-q { font-size: 14px; font-weight: 600; color: var(--text); }
+  .fc-item-a { font-size: 13px; color: var(--text2); margin-top: 6px; display: none; line-height: 1.5; padding-top: 8px; border-top: 0.5px solid var(--border); }
+  .success-box { background: var(--verde-light); border-radius: var(--radius-sm); padding: 14px; font-size: 14px; font-weight: 600; color: var(--verde-dark); text-align: center; }
+
+  /* Notas */
+  .nota-item { background: var(--bg2); border-radius: var(--radius); padding: 14px; margin-bottom: 8px; cursor: pointer; }
+  .nota-titulo { font-size: 14px; font-weight: 600; color: var(--text); }
+  .nota-preview { font-size: 12px; color: var(--text2); margin-top: 4px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .nota-meta { font-size: 11px; color: var(--text3); margin-top: 6px; }
+
+  /* Instalar banner */
+  .install-banner { background: var(--verde); color: #fff; padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+  .install-banner-text { flex: 1; font-size: 13px; font-weight: 500; line-height: 1.4; }
+  .install-banner-close { font-size: 20px; opacity: .7; padding: 4px; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- HOME -->
+  <div class="screen active" id="home">
+    <div id="install-banner" class="install-banner" style="display:none">
+      <div class="install-banner-text">Salve na tela inicial: toque em <strong>Compartilhar</strong> → <strong>Adicionar à Tela de Início</strong></div>
+      <div class="install-banner-close" onclick="document.getElementById('install-banner').style.display='none'">×</div>
+    </div>
+    <div class="topbar">
+      <div class="topbar-row">
+        <div>
+          <div class="greeting" id="greet">Bom dia</div>
+          <div class="app-title">StudyFlow</div>
+        </div>
+        <div class="streak-pill" id="streak-pill">🔥 5 dias</div>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">
+      <div class="stats">
+        <div class="stat"><div class="stat-val" id="s-rev">0</div><div class="stat-label">Revisões hoje</div></div>
+        <div class="stat"><div class="stat-val" id="s-cards">0</div><div class="stat-label">Cards</div></div>
+        <div class="stat"><div class="stat-val" id="s-notas">0</div><div class="stat-label">Notas</div></div>
+      </div>
+      <p class="sec">Módulos</p>
+      <div class="modules">
+        <div class="mod" style="background:var(--verde-light);border-color:#9FE1CB" onclick="ir('agenda')">
+          <div>
+            <div class="mod-icon" style="background:#9FE1CB">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--verde-dark)" stroke-width="1.8"><rect x="2" y="3" width="12" height="11" rx="2"/><line x1="5" y1="1" x2="5" y2="5"/><line x1="11" y1="1" x2="11" y2="5"/><line x1="2" y1="7" x2="14" y2="7"/></svg>
+            </div>
+            <div class="mod-name" style="color:var(--verde-dark)">Agenda</div>
+            <div class="mod-desc" style="color:var(--verde-dark)">Gestão de tempo</div>
+          </div>
+          <span class="mod-badge" style="background:#9FE1CB;color:var(--verde-dark)" id="badge-ag">0 hoje</span>
+        </div>
+        <div class="mod" style="background:var(--purple-light);border-color:var(--purple-mid)" onclick="ir('revisao')">
+          <div>
+            <div class="mod-icon" style="background:var(--purple-mid)">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--purple-dark)" stroke-width="1.8"><rect x="1" y="4" width="12" height="9" rx="2"/><rect x="3" y="2" width="12" height="9" rx="2" fill="none"/><line x1="5" y1="8" x2="11" y2="8"/></svg>
+            </div>
+            <div class="mod-name" style="color:var(--purple-dark)">Revisão</div>
+            <div class="mod-desc" style="color:var(--purple-dark)">Flashcards + IA</div>
+          </div>
+          <span class="mod-badge" style="background:var(--purple-mid);color:var(--purple-dark)" id="badge-fc">0 cards</span>
+        </div>
+        <div class="mod" style="background:var(--amber-light);border-color:var(--amber-mid)" onclick="ir('gerador')">
+          <div>
+            <div class="mod-icon" style="background:var(--amber-mid)">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--amber-dark)" stroke-width="1.8"><circle cx="8" cy="8" r="3"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2"/></svg>
+            </div>
+            <div class="mod-name" style="color:var(--amber-dark)">Gerar cards</div>
+            <div class="mod-desc" style="color:var(--amber-dark)">IA cria flashcards</div>
+          </div>
+          <span class="mod-badge" style="background:var(--amber-mid);color:var(--amber-dark)">✨ IA</span>
+        </div>
+        <div class="mod" style="background:var(--coral-light);border-color:var(--coral-mid)" onclick="ir('notas')">
+          <div>
+            <div class="mod-icon" style="background:var(--coral-mid)">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--coral-dark)" stroke-width="1.8"><rect x="2" y="2" width="12" height="13" rx="2"/><line x1="5" y1="6" x2="11" y2="6"/><line x1="5" y1="9" x2="11" y2="9"/><line x1="5" y1="12" x2="8" y2="12"/></svg>
+            </div>
+            <div class="mod-name" style="color:var(--coral-dark)">Caderno</div>
+            <div class="mod-desc" style="color:var(--coral-dark)">Notas e resumos</div>
+          </div>
+          <span class="mod-badge" style="background:var(--coral-mid);color:var(--coral-dark)" id="badge-nt">0 notas</span>
+        </div>
+      </div>
+      <p class="sec">Hoje</p>
+      <div class="today-list" id="today-list" style="overflow:visible"></div>
+    </div>
+    <div class="navbar">
+      <div class="nav-item active" onclick="ir('home')">
+        <svg viewBox="0 0 22 22"><path d="M3 10.5L11 3l8 7.5V19a1 1 0 01-1 1H4a1 1 0 01-1-1v-8.5z"/></svg>
+        <span class="nav-label">Início</span>
+      </div>
+      <div class="nav-item" onclick="ir('agenda')">
+        <svg viewBox="0 0 22 22"><rect x="3" y="4" width="16" height="15" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="3" y1="10" x2="19" y2="10"/></svg>
+        <span class="nav-label">Agenda</span>
+      </div>
+      <div class="nav-item" onclick="ir('revisao')">
+        <svg viewBox="0 0 22 22"><rect x="2" y="6" width="16" height="12" rx="2"/><rect x="4" y="3" width="16" height="12" rx="2"/></svg>
+        <span class="nav-label">Revisão</span>
+      </div>
+      <div class="nav-item" onclick="ir('gerador')">
+        <svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="4"/><path d="M11 3v3M11 16v3M3 11h3M16 11h3"/></svg>
+        <span class="nav-label">IA</span>
+      </div>
+      <div class="nav-item" onclick="ir('notas')">
+        <svg viewBox="0 0 22 22"><rect x="4" y="2" width="14" height="18" rx="2"/><line x1="8" y1="8" x2="14" y2="8"/><line x1="8" y1="12" x2="14" y2="12"/><line x1="8" y1="16" x2="11" y2="16"/></svg>
+        <span class="nav-label">Caderno</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENDA -->
+  <div class="screen" id="agenda">
+    <div class="s-header">
+      <span class="back" onclick="ir('home')">‹ Voltar</span>
+      <span class="s-title">Agenda</span>
+    </div>
+    <div class="s-body">
+      <div class="dias" id="semana"></div>
+      <p class="sec" style="padding:0;margin-bottom:10px">Compromissos de hoje</p>
+      <div id="agenda-itens"></div>
+      <button class="btn" onclick="toggleFormComp()">+ Adicionar compromisso</button>
+      <div id="form-comp" style="display:none;margin-top:12px;background:var(--bg2);border-radius:var(--radius);padding:14px">
+        <input id="comp-titulo" placeholder="Título (ex: Prova de fisiologia)">
+        <input id="comp-hora" type="time">
+        <select id="comp-tipo">
+          <option value="estudo">📚 Estudo</option>
+          <option value="prova">📝 Prova</option>
+          <option value="aula">🎓 Aula</option>
+          <option value="clinica">🏥 Clínica</option>
+          <option value="outro">📌 Outro</option>
+        </select>
+        <button class="btn" onclick="salvarComp()">Salvar</button>
+        <button class="btn btn-sec" style="margin-top:6px" onclick="toggleFormComp()">Cancelar</button>
+      </div>
+    </div>
+    <div class="navbar">
+      <div class="nav-item" onclick="ir('home')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 10.5L11 3l8 7.5V19a1 1 0 01-1 1H4a1 1 0 01-1-1v-8.5z"/></svg><span class="nav-label">Início</span></div>
+      <div class="nav-item active" onclick="ir('agenda')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="16" height="15" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="3" y1="10" x2="19" y2="10"/></svg><span class="nav-label">Agenda</span></div>
+      <div class="nav-item" onclick="ir('revisao')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="6" width="16" height="12" rx="2"/><rect x="4" y="3" width="16" height="12" rx="2"/></svg><span class="nav-label">Revisão</span></div>
+      <div class="nav-item" onclick="ir('gerador')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="4"/><path d="M11 3v3M11 16v3M3 11h3M16 11h3"/></svg><span class="nav-label">IA</span></div>
+      <div class="nav-item" onclick="ir('notas')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="2" width="14" height="18" rx="2"/><line x1="8" y1="8" x2="14" y2="8"/><line x1="8" y1="12" x2="14" y2="12"/><line x1="8" y1="16" x2="11" y2="16"/></svg><span class="nav-label">Caderno</span></div>
+    </div>
+  </div>
+
+  <!-- REVISÃO -->
+  <div class="screen" id="revisao">
+    <div class="s-header">
+      <span class="back" onclick="ir('home')">‹ Voltar</span>
+      <span class="s-title">Revisão do dia</span>
+    </div>
+    <div class="s-body">
+      <div class="tab-row">
+        <button class="tab on" onclick="filtrar('todos',this)">Todos</button>
+        <button class="tab" onclick="filtrar('vet',this)">Veterinária</button>
+        <button class="tab" onclick="filtrar('saude',this)">Saúde</button>
+        <button class="tab" onclick="filtrar('minhas',this)">Minhas notas</button>
+      </div>
+      <div id="rev-body"></div>
+    </div>
+    <div class="navbar">
+      <div class="nav-item" onclick="ir('home')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 10.5L11 3l8 7.5V19a1 1 0 01-1 1H4a1 1 0 01-1-1v-8.5z"/></svg><span class="nav-label">Início</span></div>
+      <div class="nav-item" onclick="ir('agenda')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="16" height="15" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="3" y1="10" x2="19" y2="10"/></svg><span class="nav-label">Agenda</span></div>
+      <div class="nav-item active" onclick="ir('revisao')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="6" width="16" height="12" rx="2"/><rect x="4" y="3" width="16" height="12" rx="2"/></svg><span class="nav-label">Revisão</span></div>
+      <div class="nav-item" onclick="ir('gerador')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="4"/><path d="M11 3v3M11 16v3M3 11h3M16 11h3"/></svg><span class="nav-label">IA</span></div>
+      <div class="nav-item" onclick="ir('notas')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="2" width="14" height="18" rx="2"/><line x1="8" y1="8" x2="14" y2="8"/><line x1="8" y1="12" x2="14" y2="12"/><line x1="8" y1="16" x2="11" y2="16"/></svg><span class="nav-label">Caderno</span></div>
+    </div>
+  </div>
+
+  <!-- GERADOR IA -->
+  <div class="screen" id="gerador">
+    <div class="s-header">
+      <span class="back" onclick="ir('home')">‹ Voltar</span>
+      <span class="s-title">Gerar com IA</span>
+    </div>
+    <div class="s-body">
+      <div class="ia-badge">
+        <div class="ia-badge-title">✨ Cole sua anotação de aula</div>
+        <div class="ia-badge-sub">A IA lê o conteúdo e cria flashcards prontos para revisão. Funciona com qualquer matéria.</div>
+      </div>
+      <textarea id="input-anotacao" rows="6" placeholder="Cole aqui suas anotações... Ex: Endoscopia digestiva alta é indicada em pacientes com vômito crônico, perda de peso, melena ou suspeita de corpo estranho. O preparo inclui jejum de 12h sólido..."></textarea>
+      <div style="display:flex;gap:8px">
+        <select id="sel-materia" style="flex:1">
+          <option>Endoscopia</option>
+          <option>Fisiologia</option>
+          <option>Anatomia</option>
+          <option>Clínica médica</option>
+          <option>Cirurgia</option>
+          <option>Farmacologia</option>
+          <option>Microbiologia</option>
+          <option>Outra</option>
+        </select>
+        <select id="sel-num" style="width:110px">
+          <option value="3">3 cards</option>
+          <option value="5" selected>5 cards</option>
+          <option value="8">8 cards</option>
+          <option value="10">10 cards</option>
+        </select>
+      </div>
+      <button class="btn" onclick="gerarIA()">✨ Gerar flashcards</button>
+      <div id="ia-result" style="margin-top:14px"></div>
+    </div>
+    <div class="navbar">
+      <div class="nav-item" onclick="ir('home')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 10.5L11 3l8 7.5V19a1 1 0 01-1 1H4a1 1 0 01-1-1v-8.5z"/></svg><span class="nav-label">Início</span></div>
+      <div class="nav-item" onclick="ir('agenda')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="16" height="15" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="3" y1="10" x2="19" y2="10"/></svg><span class="nav-label">Agenda</span></div>
+      <div class="nav-item" onclick="ir('revisao')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="6" width="16" height="12" rx="2"/><rect x="4" y="3" width="16" height="12" rx="2"/></svg><span class="nav-label">Revisão</span></div>
+      <div class="nav-item active" onclick="ir('gerador')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="4"/><path d="M11 3v3M11 16v3M3 11h3M16 11h3"/></svg><span class="nav-label">IA</span></div>
+      <div class="nav-item" onclick="ir('notas')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="2" width="14" height="18" rx="2"/><line x1="8" y1="8" x2="14" y2="8"/><line x1="8" y1="12" x2="14" y2="12"/><line x1="8" y1="16" x2="11" y2="16"/></svg><span class="nav-label">Caderno</span></div>
+    </div>
+  </div>
+
+  <!-- CADERNO -->
+  <div class="screen" id="notas">
+    <div class="s-header">
+      <span class="back" onclick="ir('home')">‹ Voltar</span>
+      <span class="s-title" id="notas-titulo">Caderno</span>
+    </div>
+    <div class="s-body" id="notas-body"></div>
+    <div class="navbar">
+      <div class="nav-item" onclick="ir('home')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 10.5L11 3l8 7.5V19a1 1 0 01-1 1H4a1 1 0 01-1-1v-8.5z"/></svg><span class="nav-label">Início</span></div>
+      <div class="nav-item" onclick="ir('agenda')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="16" height="15" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="3" y1="10" x2="19" y2="10"/></svg><span class="nav-label">Agenda</span></div>
+      <div class="nav-item" onclick="ir('revisao')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="6" width="16" height="12" rx="2"/><rect x="4" y="3" width="16" height="12" rx="2"/></svg><span class="nav-label">Revisão</span></div>
+      <div class="nav-item" onclick="ir('gerador')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="4"/><path d="M11 3v3M11 16v3M3 11h3M16 11h3"/></svg><span class="nav-label">IA</span></div>
+      <div class="nav-item active" onclick="ir('notas')"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="2" width="14" height="18" rx="2"/><line x1="8" y1="8" x2="14" y2="8"/><line x1="8" y1="12" x2="14" y2="12"/><line x1="8" y1="16" x2="11" y2="16"/></svg><span class="nav-label">Caderno</span></div>
+    </div>
+  </div>
+
+  <!-- EDITOR DE NOTA -->
+  <div class="screen" id="editor">
+    <div class="s-header">
+      <span class="back" onclick="ir('notas')">‹ Notas</span>
+      <span class="s-title">Nova nota</span>
+    </div>
+    <div class="s-body">
+      <input id="nota-titulo-input" placeholder="Título da nota" style="font-size:18px;font-weight:700;border:none;background:transparent;padding:0;margin-bottom:12px;color:var(--text)">
+      <select id="nota-materia" style="margin-bottom:12px">
+        <option>Endoscopia</option>
+        <option>Fisiologia</option>
+        <option>Anatomia</option>
+        <option>Clínica médica</option>
+        <option>Cirurgia</option>
+        <option>Caso clínico</option>
+        <option>Geral</option>
+      </select>
+      <textarea id="nota-corpo" rows="12" placeholder="Escreva sua anotação aqui... Use :: para criar flashcards automaticamente. Ex: Indicação de endoscopia :: Vômito crônico, perda de peso, melena"></textarea>
+      <div style="background:var(--purple-light);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px">
+        <div style="font-size:12px;color:var(--purple-dark);font-weight:600;margin-bottom:2px">Dica: crie flashcards inline</div>
+        <div style="font-size:12px;color:var(--purple-dark);opacity:.85">Escreva pergunta :: resposta e os flashcards são gerados automaticamente ao salvar.</div>
+      </div>
+      <button class="btn" onclick="salvarNota()">Salvar nota</button>
+      <button class="btn btn-sec" style="margin-top:6px" onclick="ir('notas')">Cancelar</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Estado persistente ──────────────────────────────────────────
+var ST = {
+  streak: 5,
+  revisoes: 0,
+  compromissos: [
+    {titulo:'Revisão — anatomia cap. 4', hora:'17:00', tipo:'estudo'},
+    {titulo:'Prova de fisiologia', hora:'', tipo:'prova', obs:'em 5 dias'},
+  ],
+  notas: [
+    {titulo:'Endoscopia — aula 3', corpo:'Indicações: vômito crônico, perda de peso, melena, hematemese.\nPreparo: jejum 12h sólido, 4h hídrico.\nIndicação de endoscopia :: Vômito crônico, melena, hematemese, corpo estranho', materia:'Endoscopia', data: new Date().toLocaleDateString('pt-BR')},
+    {titulo:'Caso clínico — gato 4 anos', corpo:'Vômito crônico há 3 semanas, perda de 0,5kg. Suspeita IBD.\nProtocolo: endoscopia + biópsia intestinal.', materia:'Caso clínico', data: new Date().toLocaleDateString('pt-BR')},
+  ],
+  cards: [
+    {q:'Quais são as principais indicações de endoscopia digestiva alta em cães?',a:'Vômito crônico, perda de peso inexplicada, melena, hematemese, suspeita de corpo estranho.',cat:'vet',mat:'Endoscopia'},
+    {q:'Protocolo de jejum para endoscopia em pequenos animais?',a:'12h jejum sólido + 4h jejum hídrico. Em gatos reduzir para 8-10h para evitar lipidose hepática.',cat:'vet',mat:'Endoscopia'},
+    {q:'O que é IBD em felinos?',a:'Doença inflamatória intestinal — infiltrado inflamatório crônico na mucosa. Diagnóstico definitivo por biópsia endoscópica.',cat:'vet',mat:'Clínica médica'},
+    {q:'Diferença entre endoscopia rígida e flexível?',a:'Rígida: menor custo, campo limitado. Flexível: acesso a todo TGI, maior custo e treinamento necessário.',cat:'vet',mat:'Endoscopia'},
+    {q:'Dose de fluidoterapia de manutenção em cães?',a:'60 mL/kg/dia ou 2,5 mL/kg/h. Ajustar conforme hidratação e perdas.',cat:'vet',mat:'Clínica médica'},
+    {q:'Sinais de obstrução intestinal em gatos?',a:'Vômito (pode ser bilioso), anorexia, letargia, dor abdominal, desidratação.',cat:'vet',mat:'Clínica médica'},
+    {q:'Qual anestésico usar em endoscopia canina?',a:'Propofol para indução, isoflurano para manutenção. Evitar xilazina (aumenta secreção gástrica).',cat:'vet',mat:'Anestesiologia'},
+    {q:'O que é a tríade do hipoadrenocorticismo?',a:'Vômito, diarreia e letargia. Hiponatremia + hipercalemia (Na/K < 27). Confirmar com teste ACTH.',cat:'saude',mat:'Endocrinologia'},
+    {q:'Diferença entre antissepsia e esterilização?',a:'Antissepsia: reduz micro-organismos em tecido vivo. Esterilização: elimina TODOS inclusive esporos, em materiais inanimados.',cat:'saude',mat:'Microbiologia'},
+    {q:'5 camadas da parede intestinal no ultrassom?',a:'Mucosa (hiper), lâmina própria (hipo), submucosa (hiper), muscular (hipo), serosa (hiper).',cat:'vet',mat:'Diagnóstico por imagem'},
+  ],
+  cardsGerados: [],
+};
+
+function salvarLocal() {
+  try { localStorage.setItem('sf_state', JSON.stringify(ST)); } catch(e){}
+}
+function carregarLocal() {
+  try {
+    var s = localStorage.getItem('sf_state');
+    if(s) { var d = JSON.parse(s); Object.assign(ST, d); }
+  } catch(e){}
+}
+
+// ── Init ────────────────────────────────────────────────────────
+carregarLocal();
+
+var h = new Date().getHours();
+document.getElementById('greet').textContent = h < 12 ? 'Bom dia 👋' : h < 18 ? 'Boa tarde 👋' : 'Boa noite 👋';
+
+if(!window.navigator.standalone) {
+  document.getElementById('install-banner').style.display = 'flex';
+}
+
+atualizarStats();
+renderToday();
+renderSemana();
+renderAgenda();
+renderRevisao('todos');
+renderNotas();
+
+function atualizarStats() {
+  var total = ST.cards.length + ST.cardsGerados.length;
+  document.getElementById('s-rev').textContent = ST.revisoes;
+  document.getElementById('s-cards').textContent = total;
+  document.getElementById('s-notas').textContent = ST.notas.length;
+  document.getElementById('badge-ag').textContent = ST.compromissos.length + ' hoje';
+  document.getElementById('badge-fc').textContent = total + ' cards';
+  document.getElementById('badge-nt').textContent = ST.notas.length + ' notas';
+}
+
+function renderToday() {
+  var cores = {estudo:'#1D9E75',prova:'#E24B4A',aula:'#EF9F27',clinica:'#7F77DD',outro:'#888780'};
+  var html = ST.compromissos.map(c => `
+    <div class="today-item">
+      <div class="dot" style="background:${cores[c.tipo]||'#888780'}"></div>
+      <div class="today-text">${c.titulo}</div>
+      <div class="today-time">${c.hora||c.obs||''}</div>
+    </div>`).join('') || '<div style="font-size:14px;color:var(--text2);padding:12px 0">Nenhum compromisso hoje.</div>';
+  document.getElementById('today-list').innerHTML = html;
+}
+
+function renderSemana() {
+  var dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  var hoje = new Date();
+  var html = '';
+  for(var i = -2; i <= 5; i++) {
+    var d = new Date(hoje); d.setDate(hoje.getDate() + i);
+    var eh = i === 0;
+    var tem = [1,3,5].includes(i);
+    html += `<div class="dia${eh?' hoje':tem?' tem':''}">
+      <span>${dias[d.getDay()]}</span>
+      <span class="dia-num">${d.getDate()}</span>
+    </div>`;
+  }
+  document.getElementById('semana').innerHTML = html;
+}
+
+function renderAgenda() {
+  var cores = {estudo:'var(--verde-light)',prova:'var(--red-light)',aula:'var(--amber-light)',clinica:'var(--purple-light)',outro:'var(--bg2)'};
+  var tcores = {estudo:'var(--verde-dark)',prova:'var(--red-dark)',aula:'var(--amber-dark)',clinica:'var(--purple-dark)',outro:'var(--text2)'};
+  var html = ST.compromissos.map((c,i) => `
+    <div class="agenda-item">
+      <div class="agenda-hora">${c.hora||'—'}</div>
+      <div style="flex:1">
+        <div class="agenda-titulo">${c.titulo}</div>
+        <span class="tag" style="background:${cores[c.tipo]};color:${tcores[c.tipo]}">${c.tipo}</span>
+      </div>
+      <div class="rem-btn" onclick="remComp(${i})">×</div>
+    </div>`).join('') || '<div style="font-size:14px;color:var(--text2);padding:12px 0">Nenhum compromisso. Adicione um!</div>';
+  document.getElementById('agenda-itens').innerHTML = html;
+}
+
+function toggleFormComp() {
+  var f = document.getElementById('form-comp');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+function salvarComp() {
+  var t = document.getElementById('comp-titulo').value.trim();
+  if(!t) { alert('Digite um título!'); return; }
+  ST.compromissos.push({titulo:t, hora:document.getElementById('comp-hora').value, tipo:document.getElementById('comp-tipo').value});
+  document.getElementById('comp-titulo').value = '';
+  document.getElementById('form-comp').style.display = 'none';
+  salvarLocal(); renderAgenda(); renderToday(); atualizarStats();
+}
+function remComp(i) {
+  ST.compromissos.splice(i,1);
+  salvarLocal(); renderAgenda(); renderToday(); atualizarStats();
+}
+
+// ── Revisão ─────────────────────────────────────────────────────
+var revAtivos = [], revIdx = 0, revVirado = false;
+
+function filtrar(cat, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  var todos = [...ST.cards, ...ST.cardsGerados];
+  if(cat === 'todos') revAtivos = todos;
+  else if(cat === 'minhas') revAtivos = ST.cardsGerados;
+  else revAtivos = ST.cards.filter(c => c.cat === cat);
+  revIdx = 0; revVirado = false;
+  renderRevisao(cat);
+}
+
+function renderRevisao(cat) {
+  var todos = [...ST.cards, ...ST.cardsGerados];
+  if(cat !== undefined) {
+    if(cat === 'todos') revAtivos = todos;
+    else if(cat === 'minhas') revAtivos = ST.cardsGerados;
+    else revAtivos = ST.cards.filter(c => c.cat === cat);
+  }
+  if(revAtivos.length === 0) {
+    document.getElementById('rev-body').innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--text2);font-size:14px">Nenhum card aqui.<br>Gere com IA ou mude o filtro.</div>';
+    return;
+  }
+  var c = revAtivos[revIdx % revAtivos.length];
+  var pct = Math.round(((revIdx % revAtivos.length) / revAtivos.length) * 100);
+  document.getElementById('rev-body').innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+      <span style="font-size:12px;color:var(--text2)">${c.mat||''}</span>
+      <span style="font-size:12px;color:var(--verde);font-weight:700">${(revIdx%revAtivos.length)+1} / ${revAtivos.length}</span>
+    </div>
+    <div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>
+    <div class="flash-wrap" id="fc" onclick="virar()">
+      <div id="fc-q" class="flash-q">${c.q}</div>
+      <div id="fc-a" class="flash-a">${c.a}</div>
+    </div>
+    <div id="fc-hint" style="text-align:center;font-size:12px;color:var(--text3);margin-bottom:12px">Toque no card para ver a resposta</div>
+    <div class="fc-btns" id="fc-btns" style="display:none">
+      <button class="btn-sm" style="background:var(--red-light);color:var(--red-dark)" onclick="proximo(0)">Não lembrei</button>
+      <button class="btn-sm" style="background:var(--amber-light);color:var(--amber-dark)" onclick="proximo(1)">Quase</button>
+      <button class="btn-sm" style="background:var(--verde-light);color:var(--verde-dark)" onclick="proximo(2)">Sabia!</button>
+    </div>`;
+}
+
+function virar() {
+  revVirado = !revVirado;
+  document.getElementById('fc-q').style.display = revVirado ? 'none' : 'block';
+  document.getElementById('fc-a').style.display = revVirado ? 'block' : 'none';
+  document.getElementById('fc-hint').style.display = revVirado ? 'none' : 'block';
+  document.getElementById('fc-btns').style.display = revVirado ? 'grid' : 'none';
+}
+function proximo(score) {
+  ST.revisoes++; revIdx++; revVirado = false;
+  salvarLocal(); atualizarStats(); renderRevisao();
+}
+
+// ── Gerador IA ──────────────────────────────────────────────────
+async function gerarIA() {
+  var texto = document.getElementById('input-anotacao').value.trim();
+  if(!texto) { alert('Cole suas anotações primeiro!'); return; }
+  var n = document.getElementById('sel-num').value;
+  var mat = document.getElementById('sel-materia').value;
+  var div = document.getElementById('ia-result');
+  div.innerHTML = '<div style="text-align:center;padding:24px 0"><div class="spinner"></div><div style="font-size:14px;color:var(--text2)">Gerando ' + n + ' flashcards...</div></div>';
+  try {
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: 'Você é especialista em criar flashcards de estudo para estudantes de veterinária e saúde. Responda APENAS com JSON válido — um array de objetos com "pergunta" e "resposta". Sem markdown, sem texto extra. Respostas diretas, máximo 2-3 linhas.',
+        messages: [{role:'user', content:`Crie exatamente ${n} flashcards sobre este conteúdo de ${mat}:\n\n${texto}\n\nResponda APENAS com o array JSON. Exemplo: [{"pergunta":"...","resposta":"..."}]`}]
+      })
+    });
+    var data = await resp.json();
+    var txt = (data.content||[]).map(i=>i.text||'').join('');
+    var clean = txt.replace(/```json|```/g,'').trim();
+    var cards = JSON.parse(clean);
+    var novos = cards.map(c => ({q:c.pergunta, a:c.resposta, cat:'minhas', mat:mat}));
+    ST.cardsGerados.push(...novos);
+    salvarLocal(); atualizarStats();
+    var html = `<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px">${cards.length} cards gerados ✨</div>`;
+    cards.forEach((c,i) => {
+      html += `<div class="fc-item" onclick="toggleItem(${i})">
+        <div class="fc-item-q">${c.pergunta}</div>
+        <div class="fc-item-a" id="fi-${i}">${c.resposta}</div>
+      </div>`;
+    });
+    html += `<button class="btn" style="margin-top:4px" onclick="document.getElementById('ia-result').innerHTML='<div class=success-box>Cards adicionados à revisão!</div>';setTimeout(()=>ir(\'revisao\'),1200)">Adicionar à revisão →</button>`;
+    div.innerHTML = html;
+  } catch(e) {
+    div.innerHTML = '<div style="background:var(--red-light);border-radius:var(--radius-sm);padding:14px;font-size:14px;color:var(--red-dark)">Não foi possível conectar. Verifique a internet e tente novamente.</div>';
+  }
+}
+function toggleItem(i) {
+  var el = document.getElementById('fi-'+i);
+  el.style.display = el.style.display === 'block' ? 'none' : 'block';
+}
+
+// ── Notas ───────────────────────────────────────────────────────
+function renderNotas() {
+  var cores = {Endoscopia:'var(--purple-light)',Fisiologia:'var(--verde-light)',Anatomia:'var(--amber-light)','Clínica médica':'var(--coral-light)','Caso clínico':'var(--amber-light)',Geral:'var(--bg2)',Cirurgia:'var(--coral-light)'};
+  var tcores = {Endoscopia:'var(--purple-dark)',Fisiologia:'var(--verde-dark)',Anatomia:'var(--amber-dark)','Clínica médica':'var(--coral-dark)','Caso clínico':'var(--amber-dark)',Geral:'var(--text2)',Cirurgia:'var(--coral-dark)'};
+  var html = ST.notas.map((n,i) => `
+    <div class="nota-item" onclick="abrirNota(${i})">
+      <div class="nota-titulo">${n.titulo}</div>
+      <div class="nota-preview">${n.corpo}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <span class="tag" style="background:${cores[n.materia]||'var(--bg2)'};color:${tcores[n.materia]||'var(--text2)'};margin:0">${n.materia}</span>
+        <span style="font-size:11px;color:var(--text3)">${n.data}</span>
+      </div>
+    </div>`).join('') || '<div style="font-size:14px;color:var(--text2);padding:20px 0 12px;text-align:center">Nenhuma nota ainda.<br>Crie sua primeira nota!</div>';
+  html += '<button class="btn" onclick="novaNotaEditor()">+ Nova nota</button>';
+  document.getElementById('notas-body').innerHTML = html;
+}
+
+function novaNotaEditor() {
+  document.getElementById('nota-titulo-input').value = '';
+  document.getElementById('nota-corpo').value = '';
+  ir('editor');
+}
+function abrirNota(i) {
+  var n = ST.notas[i];
+  document.getElementById('nota-titulo-input').value = n.titulo;
+  document.getElementById('nota-corpo').value = n.corpo;
+  document.getElementById('nota-materia').value = n.materia;
+  ir('editor');
+}
+function salvarNota() {
+  var t = document.getElementById('nota-titulo-input').value.trim();
+  var corpo = document.getElementById('nota-corpo').value.trim();
+  if(!t) { alert('Dê um título para a nota!'); return; }
+  var mat = document.getElementById('nota-materia').value;
+  ST.notas.unshift({titulo:t, corpo:corpo, materia:mat, data:new Date().toLocaleDateString('pt-BR')});
+  // Detectar flashcards inline (pergunta :: resposta)
+  var linhas = corpo.split('\n');
+  var novos = [];
+  linhas.forEach(l => {
+    if(l.includes('::')) {
+      var partes = l.split('::');
+      if(partes.length === 2 && partes[0].trim() && partes[1].trim()) {
+        novos.push({q:partes[0].trim(), a:partes[1].trim(), cat:'minhas', mat:mat});
+      }
+    }
+  });
+  if(novos.length > 0) {
+    ST.cardsGerados.push(...novos);
+    alert(novos.length + ' flashcard(s) criado(s) automaticamente da sua nota!');
+  }
+  salvarLocal(); atualizarStats(); renderNotas(); ir('notas');
+}
+
+// ── Navegação ───────────────────────────────────────────────────
+function ir(tela) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(tela).classList.add('active');
+  if(tela === 'revisao') renderRevisao();
+  if(tela === 'notas') renderNotas();
+}
+</script>
+</body>
+</html>
